@@ -91,13 +91,14 @@ impl PagesProject {
 
     #[turbo_tasks::function]
     pub async fn routes(self: Vc<Self>) -> Result<Vc<Routes>> {
+        let pages_structure = self.pages_structure();
         let PagesStructure {
             api,
             pages,
             app: _,
             document: _,
             error: _,
-        } = &*self.pages_structure().await?;
+        } = &*pages_structure.await?;
         let mut routes = IndexMap::new();
 
         async fn add_page_to_routes(
@@ -150,6 +151,7 @@ impl PagesProject {
                         pathname,
                         original_name,
                         path,
+                        pages_structure,
                     )),
                 }
             })
@@ -163,6 +165,7 @@ impl PagesProject {
                 pathname,
                 original_name,
                 path,
+                pages_structure,
             )),
             data_endpoint: Vc::upcast(PageEndpoint::new(
                 PageEndpointType::Data,
@@ -170,6 +173,7 @@ impl PagesProject {
                 pathname,
                 original_name,
                 path,
+                pages_structure,
             )),
         };
 
@@ -201,6 +205,7 @@ impl PagesProject {
             pathname_vc,
             original_name,
             path,
+            self.pages_structure(),
         ));
         Ok(endpoint)
     }
@@ -524,6 +529,7 @@ struct PageEndpoint {
     pathname: Vc<String>,
     original_name: Vc<String>,
     path: Vc<FileSystemPath>,
+    pages_structure: Vc<PagesStructure>,
 }
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Debug, TaskInput, TraceRawVcs)]
@@ -543,6 +549,7 @@ impl PageEndpoint {
         pathname: Vc<String>,
         original_name: Vc<String>,
         path: Vc<FileSystemPath>,
+        pages_structure: Vc<PagesStructure>,
     ) -> Vc<Self> {
         PageEndpoint {
             ty,
@@ -550,6 +557,7 @@ impl PageEndpoint {
             pathname,
             original_name,
             path,
+            pages_structure,
         }
         .cell()
     }
@@ -661,6 +669,7 @@ impl PageEndpoint {
                     Vc::upcast(edge_module_context),
                     self.source(),
                     this.original_name,
+                    this.pages_structure,
                     config.runtime,
                     this.pages_project.project().next_config(),
                 );
@@ -698,6 +707,7 @@ impl PageEndpoint {
                     Vc::upcast(module_context),
                     self.source(),
                     this.original_name,
+                    this.pages_structure,
                     config.runtime,
                     this.pages_project.project().next_config(),
                 );
